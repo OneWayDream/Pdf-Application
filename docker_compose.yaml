@@ -31,7 +31,7 @@ services:
       - "8081:8081"
     depends_on:
       - database
-      - rabbitmq
+      - redis
     environment:
       - "SPRING_DATASOURCE_URL=jdbc:postgresql://database:5432/pdf_app"
       - "SPRING_DATASOURCE_USERNAME=postgres"
