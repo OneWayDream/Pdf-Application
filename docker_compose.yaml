@@ -1,0 +1,157 @@
+version: '3.3'
+
+services:
+
+  pdf-server:
+    build: Pdf Server
+    container_name: pdf-server-container
+    networks:
+      - cloud
+    ports:
+      - "80:80"
+    depends_on:
+      - rabbitmq
+    environment:
+      - "SPRING_RABBIT_HOST=rabbitmq"
+      - "SPRING_RABBIT_PORT=5672"
+      - "SPRING_JWT_SERVER_HOST=http://jwt-server"
+      - "SPRING_JWT_SERVER_PORT=8081"
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+
+  jwt-server:
+    build: Pdf Jwt Server
+    container_name: pdf-jwt-server-container
+    networks:
+      - cloud
+    ports:
+      - "8081:8081"
+    depends_on:
+      - database
+      - rabbitmq
+    environment:
+      - "SPRING_DATASOURCE_URL=jdbc:postgresql://database:5432/pdf_app"
+      - "SPRING_DATASOURCE_USERNAME=postgres"
+      - "SPRING_DATASOURCE_PASSWORD=qwerty007ru"
+      - "REDIS_HOST=redis"
+      - "REDIS_PORT=6379"
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+
+  java-lab-generator:
+    build: Pdf Generator
+    container_name: java-lab-generator-container
+    networks:
+      - cloud
+    depends_on:
+      - database
+      - redis
+      - rabbitmq
+    environment:
+      - "SPRING_DATASOURCE_URL=jdbc:postgresql://database:5432/pdf_app"
+      - "SPRING_DATASOURCE_USERNAME=postgres"
+      - "SPRING_DATASOURCE_PASSWORD=qwerty007ru"
+      - "REDIS_HOST=redis"
+      - "REDIS_PORT=6379"
+      - "SPRING_RABBIT_HOST=rabbitmq"
+      - "SPRING_RABBIT_PORT=5672"
+      - "RABBIT_ROUTING_KEY=pdf.report.java_lab"
+      - "STATISTICS_PATTERN_TYPE=JAVA_LAB"
+      - "PDF_TEMPLATE_NAME=java_lab_template"
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+
+  linux-generator:
+    build: Pdf Generator
+    container_name: linux-generator-container
+    networks:
+      - cloud
+    depends_on:
+      - database
+      - redis
+      - rabbitmq
+    environment:
+      - "SPRING_DATASOURCE_URL=jdbc:postgresql://database:5432/pdf_app"
+      - "SPRING_DATASOURCE_USERNAME=postgres"
+      - "SPRING_DATASOURCE_PASSWORD=qwerty007ru"
+      - "REDIS_HOST=redis"
+      - "REDIS_PORT=6379"
+      - "SPRING_RABBIT_HOST=rabbitmq"
+      - "SPRING_RABBIT_PORT=5672"
+      - "RABBIT_ROUTING_KEY=pdf.report.linux"
+      - "STATISTICS_PATTERN_TYPE=LINUX"
+      - "PDF_TEMPLATE_NAME=linux_template"
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+
+  database:
+    image: postgres
+    container_name: postgres
+    networks:
+      - cloud
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: pdf_app
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: qwerty007ru
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+
+  redis:
+    image: redis
+    container_name: redis
+    networks:
+      - cloud
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-volume:/data
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: 'rabbitmq'
+    ports:
+      - "5672:5672"
+      - "15673:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq/
+      - rabbitmq-log:/var/log/rabbitmq
+    networks:
+      - cloud
+
+volumes:
+  pgdata:
+    external: true
+  redis-volume:
+    external: true
+  rabbitmq-data:
+    external: true
+  rabbitmq-log:
+    external: true
+
+networks:
+  cloud:
+    external: true
